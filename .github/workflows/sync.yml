@@ -1,0 +1,42 @@
+name: PSN sync to BigQuery
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Cap on changed titles processed for trophies (leave empty for a full run)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Run sync
+        env:
+          GCP_PROJECT: ${{ vars.GCP_PROJECT }}
+          BQ_DATASET: ${{ vars.BQ_DATASET }}
+          BQ_LOCATION: ${{ vars.BQ_LOCATION }}
+          # Read directly from a repo secret; Secret Manager (NPSSO_SECRET_NAME) is
+          # only used when this is unset, so both paths keep working.
+          PSN_NPSSO: ${{ secrets.PSN_NPSSO }}
+        run: python -m psn_sync.sync ${{ github.event.inputs.limit && format('--limit {0}', github.event.inputs.limit) || '' }}
