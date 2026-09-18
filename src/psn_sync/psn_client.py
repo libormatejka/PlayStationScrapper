@@ -100,7 +100,8 @@ def fetch_trophies_for_titles(
         batch = title_ids[i : i + TROPHY_BATCH_SIZE]
         try:
             summaries = list(client.trophy_titles_for_title(batch))
-        except PSNAWPError:
+        except PSNAWPError as exc:
+            print(f"  skipping batch {batch} (trophy_titles_for_title failed: {exc})")
             if on_progress is not None:
                 on_progress(i // TROPHY_BATCH_SIZE + 1, total_batches)
             continue  # whole batch unavailable (rate limit, private set); skip and move on
@@ -121,8 +122,9 @@ def fetch_trophies_for_titles(
                 trophies = list(
                     client.trophies(summary.np_communication_id, platform, include_progress=True)
                 )
-            except PSNAWPError:
-                # e.g. no "default" trophy group for this title; best-effort, skip it
+            except PSNAWPError as exc:
+                # e.g. no "default" trophy group for this title, or rate limit; best-effort, skip it
+                print(f"  skipping title_id={title_id} ({summary.title_name!r}): {exc}")
                 continue
 
             for trophy in trophies:
