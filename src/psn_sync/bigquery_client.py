@@ -20,12 +20,9 @@ SCHEMA_FILE = Path(__file__).resolve().parent.parent.parent / "sql" / "schema.sq
 
 def ensure_schema(client: bigquery.Client, project: str, dataset: str, location: str) -> None:
     dataset_ref = bigquery.DatasetReference(project, dataset)
-    try:
-        client.get_dataset(dataset_ref)
-    except Exception:
-        ds = bigquery.Dataset(dataset_ref)
-        ds.location = location
-        client.create_dataset(ds)
+    ds = bigquery.Dataset(dataset_ref)
+    ds.location = location
+    client.create_dataset(ds, exists_ok=True)
 
     ddl = SCHEMA_FILE.read_text().format(project=project, dataset=dataset)
     for statement in filter(None, (s.strip() for s in ddl.split(";"))):
