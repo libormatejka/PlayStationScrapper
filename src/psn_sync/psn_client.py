@@ -106,6 +106,13 @@ def fetch_trophies_for_titles(
                 on_progress(i // TROPHY_BATCH_SIZE + 1, total_batches)
             continue  # whole batch unavailable (rate limit, private set); skip and move on
 
+        # trophy_titles_for_title silently omits ids with no matching trophy
+        # title (no exception raised) - log those so it's clear who's missing.
+        returned_ids = {s.np_title_id for s in summaries if s.np_title_id}
+        missing = [t for t in batch if t not in returned_ids]
+        if missing:
+            print(f"  no trophy title returned for: {missing}")
+
         for summary in summaries:
             title_id = summary.np_title_id
             if not title_id:
