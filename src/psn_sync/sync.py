@@ -44,7 +44,7 @@ def run(dry_run: bool, limit: int | None = None) -> int:
     print(f"fetched {len(games)} titles from PSN")
 
     bq = None
-    previous: dict[str, tuple[float, int]] = {}
+    previous: dict[str, tuple[float, int, bool]] = {}
     if not dry_run:
         from google.cloud import bigquery
 
@@ -58,7 +58,8 @@ def run(dry_run: bool, limit: int | None = None) -> int:
         g.title_id
         for g in games
         if g.title_id not in previous
-        or previous[g.title_id] != (g.playtime_hours, g.play_count)
+        or previous[g.title_id][:2] != (g.playtime_hours, g.play_count)
+        or not previous[g.title_id][2]
     ]
     if limit is not None:
         changed_title_ids = changed_title_ids[:limit]

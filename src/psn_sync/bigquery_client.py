@@ -36,11 +36,19 @@ def ensure_schema(client: bigquery.Client, project: str, dataset: str, location:
 
 def get_existing_games(
     client: bigquery.Client, project: str, dataset: str
-) -> dict[str, tuple[float, int]]:
-    """{title_id: (playtime_hours, play_count)} as currently stored."""
-    query = f"SELECT title_id, playtime_hours, play_count FROM `{project}.{dataset}.games`"
+) -> dict[str, tuple[float, int, bool]]:
+    """{title_id: (playtime_hours, play_count, has_trophies)} as currently stored.
+
+    ``has_trophies`` is True once a title's ``np_communication_id`` has been
+    filled in by a prior trophy fetch; used so titles never touched by
+    --limit on earlier runs still get picked up, even with unchanged playtime.
+    """
+    query = f"""
+        SELECT title_id, playtime_hours, play_count, np_communication_id IS NOT NULL AS has_trophies
+        FROM `{project}.{dataset}.games`
+    """
     return {
-        row.title_id: (row.playtime_hours or 0.0, row.play_count or 0)
+        row.title_id: (row.playtime_hours or 0.0, row.play_count or 0, bool(row.has_trophies))
         for row in client.query(query).result()
     }
 
