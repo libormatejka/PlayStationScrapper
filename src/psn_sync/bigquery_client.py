@@ -24,9 +24,14 @@ def ensure_schema(client: bigquery.Client, project: str, dataset: str, location:
     ds.location = location
     client.create_dataset(ds, exists_ok=True)
 
+    # Run the whole file as one multi-statement script; BigQuery parses
+    # comments/semicolons itself, so no naive string-splitting here. No
+    # explicit `location=` here: the `psn` dataset already exists (created
+    # before BQ_LOCATION was wired up) and the client resolves the job's
+    # region from the dataset itself.
     ddl = SCHEMA_FILE.read_text().format(project=project, dataset=dataset)
-    for statement in filter(None, (s.strip() for s in ddl.split(";"))):
-        client.query(statement).result()
+    client.query(ddl).result()
+
 
 
 def get_existing_games(
